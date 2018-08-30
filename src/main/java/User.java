@@ -1,9 +1,3 @@
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 public class User {
 
 
@@ -15,17 +9,8 @@ public class User {
         this.email = email;
         this.password = password;
         this.age = age;
-        saveUserInfoToFile(email, password, age);
     }
 
-    public void saveUserInfoToFile(String email, String password, int age) {
-        try {
-            PrintStream fileStream = new PrintStream(new File(email + ".txt"));
-            String toFile = "Email:" + email + " " + "Password:" + password + " " + "Age:" + age;
-            fileStream.println(toFile);
-        } catch (FileNotFoundException e) {
-        }
-    }
 
     public String getEmail() {
         return email;
