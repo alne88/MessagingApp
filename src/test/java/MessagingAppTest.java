@@ -110,22 +110,6 @@ public class MessagingAppTest {
         }
     }
 
-    @Test
-    public void createNewUser_PrintMessage_IfEverythingWentOK() {
-        //given
-        String email = "random@random.ee";
-        String password = "random";
-        int age = 20;
-
-        //when
-        try {
-            messagingApp.createNewUser(email, password, age);
-            fail();
-        } catch (IOUtils e) {
-            //then
-            assertEquals("Age incorrect", e.printMessage());
-        }
-    }
 
     @Test
     public void loginUser() {
