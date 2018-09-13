@@ -57,7 +57,17 @@ public class Main {
                     email = scanner.next();
                     System.out.println("Password: ");
                     password = scanner.next();
-                    messagingApp.deleteUser(email, password);
+                    if (messagingApp.loginUser(email, password)) {
+                        System.out.println("Are you sure you want to delete " + email + "?");
+                        System.out.println("Yes/No?");
+                        String answer = scanner.next();
+
+                        if (answer.toLowerCase().equals("yes")) {
+                            messagingApp.deleteUser(email);
+                        } else {
+                            System.out.println("Ok, maybe later then");
+                        }
+                    }
                     break;
 
                 case 0:     //exit
@@ -78,6 +88,7 @@ public class Main {
         while (true) {
             System.out.println("1 - Send new message:");
             System.out.println("2 - Print all messages");
+            System.out.println("3 - Print unread messages");
             System.out.println("0 - Exit messaging session");
             userChoice = scanner.nextInt();
             scanner.nextLine();
@@ -92,7 +103,12 @@ public class Main {
                     messagingApp.printConversationHistory(email, receiverUser);
                     break;
 
+                case 3:
+                    messagingApp.printUnreadMessages(email, receiverUser);
+                    break;
+
                 case 0:
+                    Thread.interrupted();
                     return;
 
                 default:

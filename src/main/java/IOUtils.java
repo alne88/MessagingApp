@@ -11,6 +11,13 @@ public class IOUtils {
         return new File(email+".txt").isFile();
     }
 
+    public boolean doesConversationFileExist(String filepath) {
+        if (new File(filepath).isFile()) {
+            return true;
+        }
+        return false;
+    }
+
     public String getMessageFilePath (String senderEmail, String receiverEmail) {
         if (new File(senderEmail + "_" + receiverEmail + ".txt").isFile()) {
             return (senderEmail + "_" + receiverEmail + ".txt");
@@ -53,7 +60,32 @@ public class IOUtils {
         return null;
     }
 
-    public String saveLastLoginTimeToFile (String email, String timestamp) {
+    public String getLastMessageTime (String conversationHistoryPath) {
+        try {
+            Path filePath = Paths.get(conversationHistoryPath);
+            List<String> conversation = Files.readAllLines(filePath);
+            return conversation.get(conversation.size()-1);                     //this can lead to problems in the future when user sends multi line message, right now timestamp is line above the message.
+        } catch (IOException e) {
+        }
+        return null;
+    }
+
+    public int numberOfUnreadMessages (String conversationHistoryPath, String email) {
+        try {
+            Path filePath = Paths.get(conversationHistoryPath);
+            List<String> conversation = Files.readAllLines(filePath);
+
+            if (getLastLoginTime(email).equals(getLastMessageTime(conversationHistoryPath))) {
+                return 0;
+            }
+            return ((conversation.size() - conversation.indexOf(getLastLoginTime(email))) / 3);         //each message consists of 3 lines - timestamp, message and empty line
+
+        } catch (IOException e) {
+        }
+        return 0;
+    }
+
+    public String saveTimestampToUserFile(String email, String timestamp) {
         try {
             Path filePath = Paths.get(email+".txt");
             List<String> conversation = Files.readAllLines(filePath);

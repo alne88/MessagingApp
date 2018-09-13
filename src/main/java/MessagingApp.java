@@ -56,33 +56,19 @@ public class MessagingApp {
         return false;
     }
 
-    public void deleteUser (String email, String password) {
-        if (ioUtils.doesUserFileExist(email)) {
-            try {
-                Path filePath = Paths.get(email+".txt");
-                List<String> userInfo = Files.readAllLines(filePath);
-
-                if (!email.equals(userInfo.get(0))) {
-                    ioUtils.printMessage("Wrong email/password");
-                    return;
-                }
-                if (!password.equals(userInfo.get(1))) {
-                    ioUtils.printMessage("Wrong email/password");
-                    return;
-                }
-                Files.delete(filePath);
-                ioUtils.printMessage("User was successfully deleted");
-            } catch (IOException e) {
-            }
-        } else  {
-            ioUtils.printMessage("User was not found");
+    public void deleteUser (String email) {
+        Path filePath = Paths.get(email+".txt");
+        try {
+            Files.delete(filePath);
+        } catch (IOException e) {
         }
+        ioUtils.printMessage("User was successfully deleted");
     }
 
     public void sendMessage (String senderEmail, String receiverEmail, String message) {
         String messageHistoryPath = ioUtils.getMessageFilePath(senderEmail, receiverEmail);
         String timestamp = String.valueOf(LocalDateTime.now());
-        ioUtils.saveLastLoginTimeToFile(senderEmail, timestamp);
+        ioUtils.saveTimestampToUserFile(senderEmail, timestamp);
         try {
             FileWriter writer = new FileWriter(messageHistoryPath, true);
             writer.write("\n" + timestamp + "\n");
@@ -95,14 +81,46 @@ public class MessagingApp {
 
     public void printConversationHistory(String senderEmail, String receiverEmail) {
         String messageHistoryPath = ioUtils.getMessageFilePath(senderEmail, receiverEmail);
-        try {
-            Path filePath = Paths.get(messageHistoryPath);
-            List<String> conversation = Files.readAllLines(filePath);
-            for (String line : conversation) {
-                System.out.println(line);
+        if (ioUtils.doesConversationFileExist(messageHistoryPath)) {
+            try {
+                Path filePath = Paths.get(messageHistoryPath);
+                List<String> conversation = Files.readAllLines(filePath);
+                for (String line : conversation) {
+                    ioUtils.printMessage(line);
+                }
+                ioUtils.printMessage("----------------------------");
+            } catch (IOException e) {
             }
+        } else {
+            ioUtils.printMessage("Conversation history is empty. Go ahead, send the first message");
+            ioUtils.printMessage("----------------------------");
+            return;
+        }
+    }
+
+    public void printUnreadMessages(String senderEmail, String receiverEmail) {
+        String messageHistoryPath = ioUtils.getMessageFilePath(senderEmail, receiverEmail);
+        if (ioUtils.doesConversationFileExist(messageHistoryPath)) {
+            if (ioUtils.numberOfUnreadMessages(messageHistoryPath, senderEmail) > 0) {
+                try {
+                    Path filePath = Paths.get(messageHistoryPath);
+                    List<String> conversation = Files.readAllLines(filePath);
+                    int startingPoint = conversation.indexOf(ioUtils.getLastLoginTime(senderEmail));
+
+                    for (int i = startingPoint + 3; i < conversation.size(); i++) {  // +3 to skip last seen message
+                        ioUtils.printMessage(conversation.get(i));
+                    }
+                    ioUtils.printMessage("----------------------------");
+                    ioUtils.saveTimestampToUserFile(senderEmail, ioUtils.getLastMessageTime(messageHistoryPath));
+                } catch (IOException e) {
+                }
+            } else {
+                ioUtils.printMessage("No new messages");
+                System.out.println("----------------------------");
+            }
+        } else {
+            System.out.println("Conversation history is empty. Go ahead, send the first message");
             System.out.println("----------------------------");
-        } catch (IOException e) {
         }
     }
 
@@ -118,28 +136,31 @@ public class MessagingApp {
         return false;
     }
 
-    public void newMessageChecker (String senderEmail, String receiverEmail) {
-        String messageHistoryPath = ioUtils.getMessageFilePath(senderEmail, receiverEmail);
-        String lastLoginTime = ioUtils.getLastLoginTime(senderEmail);
+    synchronized void  newMessageChecker (String senderEmail, String receiverEmail) {
+        new Thread(() -> {
+            String messageHistoryPath = ioUtils.getMessageFilePath(senderEmail, receiverEmail);
+            boolean doIt = true;
+            String lastCheck = null;
 
-        try {
-            Path filePath = Paths.get(messageHistoryPath);
-            List<String> conversation = Files.readAllLines(filePath);
-
-            Thread newMessageCheckerThread = new Thread(() -> {
-                int newMessagesNumber = 0;
-                String lastMessageTime = conversation.get(conversation.size()-1);
-                if (lastLoginTime.equals(lastMessageTime)) {
-                    System.out.println("You have no new messages");
-                } else {
-                    System.out.println("You have " + newMessagesNumber + " new messages");
+            while (true) {
+                try {
+                    if (ioUtils.doesConversationFileExist(messageHistoryPath)) {
+                        if (doIt) {
+                            System.out.println("You have " + ioUtils.numberOfUnreadMessages(messageHistoryPath, senderEmail) + " new messages");
+                            System.out.println("----------------------------");
+                            lastCheck = ioUtils.getLastMessageTime(messageHistoryPath);
+                            doIt = false;
+                        } else
+                        if (lastCheck.equals(ioUtils.getLastMessageTime(messageHistoryPath))) {
+                            doIt = false;
+                        } else {
+                            doIt = true;
+                        }
+                    }
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
                 }
-            });
-
-            newMessageCheckerThread.start();
-
-            System.out.println("----------------------------");
-        } catch (IOException e) {
-        }
+            }
+        }).start();
     }
 }
